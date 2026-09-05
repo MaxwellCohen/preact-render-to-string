@@ -8,7 +8,10 @@ import { createInitScript, createSubtree } from './client.js';
  * @param {RenderToChunksOptions} options
  * @returns {Promise<void>}
  */
-export async function renderToChunks(vnode, { context, onWrite, abortSignal, nonce }) {
+export async function renderToChunks(
+	vnode,
+	{ context, onWrite, abortSignal, nonce }
+) {
 	context = context || {};
 
 	/** @type {RendererState} */
@@ -111,7 +114,13 @@ function handleError(error, vnode, renderChild) {
 
 	const fallback = renderChild(vnode.props.fallback);
 
-	return found
-		? ''
-		: `<!--$s:${id}--><?start name="${id}">${fallback}<?end><!--/$s:${id}-->`;
+	// Native template patches are parsed in the transport's HTML context.
+	// Let the client helper parse foreign content in the target's context instead.
+	let parent = vnode;
+	while (parent && parent.type !== 'svg' && parent.type !== 'math') {
+		parent = parent[PARENT];
+	}
+	const content = parent ? fallback : `<?start name="${id}">${fallback}<?end>`;
+
+	return found ? '' : `<!--$s:${id}-->${content}<!--/$s:${id}-->`;
 }
