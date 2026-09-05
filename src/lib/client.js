@@ -18,30 +18,29 @@ import { encodeEntities } from './util.js';
 // 		  // remove the old template and insert the new one
 // 		  if (s && e && s.parentNode !== d) {
 // 			while ((p = s.nextSibling) && p != e) p.remove();
-// 			s.after(node.content);
+// 			let content = node.content;
+// 			if (s.parentNode.namespaceURI != "http://www.w3.org/1999/xhtml") {
+// 				let range = d.createRange();
+// 				range.selectNodeContents(s.parentNode);
+// 				content = range.createContextualFragment(node.innerHTML);
+// 			}
+// 			s.after(content);
 // 			node.remove();
 // 		  }
-// 		}
-// 	  }
-
-// 	 // re-parse SVG and MathML elements so they will be rendered correctly
-// 	  for ( node of d[qsa]("svg *,math *")) {
-// 		if (node.tagName < "a" && (node = node.closest("svg,math"))) {
-// 		  node.innerHTML += "";
 // 		}
 // 	  }
 
 // 	  // disconnect the mutation observer if the document is not loading (complete or interactive)
 // 	  if (isNotLoading) mo.disconnect();
 // 	};
-  
+
 // 	let mo = new MutationObserver(initPreactPatch);
 // 	mo.observe(d, { childList: 1, subtree: 1 });
 // 	d.addEventListener("DOMContentLoaded", initPreactPatch);
 // })(document);
 
 // To modify the INIT_SCRIPT, uncomment the above code, modify it, and paste it into https://try.terser.org/.
-const INIT_SCRIPT = `(e=>{let t=()=>{let t,r="l"!=e.readyState[0],n="querySelectorAll";for(t of e[n]("template[for]"))if(r||t.nextElementSibling){let o,r,n,a,d=e.createNodeIterator(e,128),i="$s:"+t.getAttribute("for");for(;(n=d.nextNode())&&(!o||!r);)n.data==i?o=n:n.data=="/"+i&&(r=n);if(o&&r&&o.parentNode!==e){for(;(a=o.nextSibling)&&a!=r;)a.remove();o.after(t.content),t.remove()}}for(t of e[n]("svg *,math *"))t.tagName<"a"&&(t=t.closest("svg,math"))&&(t.innerHTML+="");r&&o.disconnect()},o=new MutationObserver(t);o.observe(e,{childList:1,subtree:1}),e.addEventListener("DOMContentLoaded",t)})(document);`;
+const INIT_SCRIPT = `(e=>{let t=()=>{let t,r="l"!=e.readyState[0];for(t of e.querySelectorAll("template[for]"))if(r||t.nextElementSibling){let n,r,o,a,l=e.createNodeIterator(e,128),d="$s:"+t.getAttribute("for");for(;(o=l.nextNode())&&(!n||!r);)o.data==d?n=o:o.data=="/"+d&&(r=o);if(n&&r&&n.parentNode!==e){for(;(a=n.nextSibling)&&a!=r;)a.remove();let o=t.content;if("http://www.w3.org/1999/xhtml"!=n.parentNode.namespaceURI){let r=e.createRange();r.selectNodeContents(n.parentNode),o=r.createContextualFragment(t.innerHTML)}n.after(o),t.remove()}}r&&n.disconnect()},n=new MutationObserver(t);n.observe(e,{childList:1,subtree:1}),e.addEventListener("DOMContentLoaded",t)})(document);`;
 
 /**
  * @param {string} nonce

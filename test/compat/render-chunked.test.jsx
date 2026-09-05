@@ -347,3 +347,34 @@ describe('createInitScript', () => {
 			.true;
 	});
 });
+
+describe('foreign content streaming', () => {
+	it.each(['svg', 'math'])(
+		'should leave %s patches to the contextual client helper',
+		async (type) => {
+			let resolve;
+			let ready = false;
+			const pending = new Promise((r) => (resolve = r));
+			function Child() {
+				if (!ready) throw pending;
+				return h(
+					type === 'svg' ? 'circle' : 'mi',
+					null,
+					type === 'svg' ? null : 'x'
+				);
+			}
+			const chunks = [];
+			const rendered = renderToChunks(
+				h(type, null, h(Suspense, { fallback: 'loading' }, h(Child))),
+				{ onWrite: (chunk) => chunks.push(chunk) }
+			);
+			expect(chunks[0]).toContain('<!--$s:');
+			expect(chunks[0]).not.toContain('<?start');
+			ready = true;
+			resolve();
+			await rendered;
+			expect(chunks[2]).toContain('<template for=');
+			expect(chunks[2]).toContain(type === 'svg' ? '<circle' : '<mi>x</mi>');
+		}
+	);
+});

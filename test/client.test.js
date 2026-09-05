@@ -86,7 +86,7 @@ describe('createInitScript', () => {
 		expect(html).toContain('MutationObserver');
 		expect(html).toContain('DOMContentLoaded');
 		expect(html).toContain('template[for]');
-		expect(html).toContain('svg *,math *');
+		expect(html).toContain('createContextualFragment');
 		expect(html).toContain('disconnect');
 		expect(html).toContain('(e=>{');
 		expect(html).toContain('})(document)');
@@ -308,33 +308,67 @@ describe('inline init script', () => {
 		expect(document.querySelector('template[for="2"]')).not.toBeNull();
 	});
 
-	it('should reparse HTML-namespaced children inside svg and math', async () => {
+	it('should parse incoming patches in their SVG and MathML context', async () => {
 		const { window, document } = createDom(
-			'<div><!--$s:1-->loading<!--/$s:1--></div>'
+			'<svg><!--$s:1-->fallback<!--/$s:1--></svg><math><!--$s:2-->fallback<!--/$s:2--></math>'
 		);
-
-		const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-		svg.appendChild(document.createElement('path'));
-		const math = document.createElementNS(
-			'http://www.w3.org/1998/Math/MathML',
-			'math'
-		);
-		math.appendChild(document.createElement('mi'));
-		document.body.append(svg, math);
-
-		expect(svg.firstChild.namespaceURI).toBe('http://www.w3.org/1999/xhtml');
-		expect(math.firstChild.namespaceURI).toBe('http://www.w3.org/1999/xhtml');
-
 		runInitScript(window);
-		appendTogether(document, createSubtree('1', '<p>resolved</p>'));
+		appendTogether(
+			document,
+			createSubtree(
+				'1',
+				'<circle cx="5"/><foreignObject><button>click</button></foreignObject>'
+			),
+			createSubtree(
+				'2',
+				'<mi>x</mi><annotation-xml encoding="text/html"><span>html</span></annotation-xml>'
+			)
+		);
 		await flushMutations();
-
-		expect(svg.firstChild.namespaceURI).toBe('http://www.w3.org/2000/svg');
-		expect(math.firstChild.namespaceURI).toBe(
+		expect(document.querySelector('circle').namespaceURI).toBe(
+			'http://www.w3.org/2000/svg'
+		);
+		expect(document.querySelector('foreignObject').namespaceURI).toBe(
+			'http://www.w3.org/2000/svg'
+		);
+		expect(document.querySelector('button').namespaceURI).toBe(
+			'http://www.w3.org/1999/xhtml'
+		);
+		expect(document.querySelector('mi').namespaceURI).toBe(
 			'http://www.w3.org/1998/Math/MathML'
 		);
-		expect(document.querySelector('div').innerHTML).toBe(
-			'<!--$s:1--><p>resolved</p><!--/$s:1-->'
+		expect(document.querySelector('span').namespaceURI).toBe(
+			'http://www.w3.org/1999/xhtml'
+		);
+	});
+
+	it('should preserve live foreign content while patching an SVG sibling', async () => {
+		const { window, document } = createDom(
+			'<svg><foreignObject><button>click</button></foreignObject><!--$s:1-->fallback<!--/$s:1--></svg>'
+		);
+		const button = document.querySelector('button');
+		let clicks = 0;
+		button.addEventListener('click', () => clicks++);
+		runInitScript(window);
+		appendTogether(document, createSubtree('1', '<circle cx="5"/>'));
+		await flushMutations();
+		expect(document.querySelector('button')).toBe(button);
+		button.click();
+		expect(clicks).toBe(1);
+		expect(document.querySelector('circle').namespaceURI).toBe(
+			'http://www.w3.org/2000/svg'
+		);
+	});
+
+	it('should respect an HTML integration point as the patch parent', async () => {
+		const { window, document } = createDom(
+			'<svg><foreignObject><!--$s:1-->fallback<!--/$s:1--></foreignObject></svg>'
+		);
+		runInitScript(window);
+		appendTogether(document, createSubtree('1', '<button>click</button>'));
+		await flushMutations();
+		expect(document.querySelector('button').namespaceURI).toBe(
+			'http://www.w3.org/1999/xhtml'
 		);
 	});
 });
