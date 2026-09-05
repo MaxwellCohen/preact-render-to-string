@@ -74,7 +74,7 @@ function appendTogether(document, ...htmlSnippets) {
 describe('createSubtree', () => {
 	it('should wrap content in a template with a for attribute', () => {
 		expect(createSubtree('5', '<p>it works</p>')).toBe(
-			'<template for="5"><p>it works</p></template>'
+			'<template for="5"><p>it works</p></template><!--$p:5-->'
 		);
 	});
 });
@@ -281,6 +281,46 @@ describe('inline init script', () => {
 			'<div><!--$s:1--><p>one</p><!--/$s:1--><!--$s:2--><p>two</p><!--/$s:2--></div>'
 		);
 		expect(document.querySelectorAll('template')).toHaveLength(0);
+	});
+
+	it('should apply a completed patch without waiting for the next chunk', async () => {
+		const { window, document } = createDom(
+			'<div><!--$s:1-->loading<!--/$s:1--></div>'
+		);
+		setReadyState(document, 'loading');
+		runInitScript(window);
+		appendTogether(document, createSubtree('1', '<p>resolved</p>'));
+		await flushMutations();
+		expect(document.body.innerHTML).toBe(
+			'<div><!--$s:1--><p>resolved</p><!--/$s:1--></div>'
+		);
+	});
+
+	it('should wait for a completion marker delivered in a later chunk', async () => {
+		const { window, document } = createDom(
+			'<div><!--$s:1-->loading<!--/$s:1--></div>'
+		);
+		setReadyState(document, 'loading');
+		runInitScript(window);
+		const template = appendTemplate(document, '1', '');
+		await flushMutations();
+		template.innerHTML = '<p>resolved</p>';
+		await flushMutations();
+		expect(document.querySelector('div').textContent).toBe('loading');
+		template.after(document.createComment('$p:1'));
+		await flushMutations();
+		expect(document.body.innerHTML).toBe(
+			'<div><!--$s:1--><p>resolved</p><!--/$s:1--></div>'
+		);
+	});
+
+	it('should remove completion markers when native patching has consumed the template', async () => {
+		const { window, document } = createDom('<div>resolved</div>');
+		setReadyState(document, 'loading');
+		runInitScript(window);
+		document.body.appendChild(document.createComment('$p:1'));
+		await flushMutations();
+		expect(document.body.innerHTML).toBe('<div>resolved</div>');
 	});
 
 	it('should disconnect the MutationObserver after a non-loading pass', async () => {
