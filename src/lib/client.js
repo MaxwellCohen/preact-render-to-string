@@ -1,55 +1,56 @@
+import { encodeEntities } from './util.js';
+
 /* eslint-disable no-var, key-spacing, object-curly-spacing, prefer-arrow-callback, semi, keyword-spacing */
 
-// function initPreactIslandElement() {
-// 	class PreactIslandElement extends HTMLElement {
-// 		connectedCallback() {
-// 			var d = this;
-// 			if (!d.isConnected) return;
-
-// 			let i = this.getAttribute('data-target');
-// 			if (!i) return;
-
-// 			var s,
-// 				e,
-// 				c = document.createNodeIterator(document, 128);
-// 			while (c.nextNode()) {
-// 				let n = c.referenceNode;
-
-// 				if (n.data == '$s:' + i) s = n;
-// 				else if (n.data == '/$s:' + i) e = n;
-// 				if (s && e) break;
-// 			}
-// 			if (s && e && s.parentNode !== document) {
-// 				requestAnimationFrame(() => {
-// 					var p = e.previousSibling;
-// 					while (p != s) {
-// 						if (!p || p == s) break;
-// 						e.parentNode.removeChild(p);
-// 						p = e.previousSibling;
-// 					}
-
-// 					c = s;
-// 					while (d.firstChild) {
-// 						s = d.firstChild;
-// 						d.removeChild(s);
-// 						c.after(s);
-// 						c = s;
-// 					}
-
-// 					d.parentNode.removeChild(d);
-// 				});
-// 			}
+// ((d) => {
+// 	let initPreactPatch = () => {
+// 	  let isNotLoading = d.readyState[0] != "l", qsa = 'querySelectorAll',node;
+//   	  // loop through all <template[for]> and move them
+// 	  for ( node of d[qsa]("template[for]")) {
+// 		// make sure the template is done streaming in: a later sibling alone is
+// 		// not enough (open templates can gain siblings via microtask interleaving
+// 		// before children arrive). Require content while the document is loading.
+// 		if (isNotLoading || node.nextElementSibling && node.content.childNodes.length) {
+// 		  let s, e, n, p, c = d.createNodeIterator(d, 128), id = "$s:" + node.getAttribute("for");
+// 		  // find the start and end markers in content
+// 		  while ((n = c.nextNode()) && !(s && e)) {
+// 			if (n.data == id) s = n;
+// 			else if (n.data == "/" + id) e = n;
+// 		  }
+// 		  // remove the old template and insert the new one
+// 		  if (s && e && s.parentNode !== d) {
+// 			while ((p = s.nextSibling) && p != e) p.remove();
+// 			s.after(node.content);
+// 			node.remove();
+// 		  }
 // 		}
-// 	}
+// 	  }
 
-// 	customElements.define('preact-island', PreactIslandElement);
-// }
+// 	 // re-parse SVG and MathML elements so they will be rendered correctly
+// 	  for ( node of d[qsa]("svg *,math *")) {
+// 		if (node.tagName < "a" && (node = node.closest("svg,math"))) {
+// 		  node.innerHTML += "";
+// 		}
+// 	  }
+
+// 	  // disconnect the mutation observer if the document is not loading (complete or interactive)
+// 	  if (isNotLoading) mo.disconnect();
+// 	};
+  
+// 	let mo = new MutationObserver(initPreactPatch);
+// 	mo.observe(d, { childList: 1, subtree: 1 });
+// 	d.addEventListener("DOMContentLoaded", initPreactPatch);
+// })(document);
 
 // To modify the INIT_SCRIPT, uncomment the above code, modify it, and paste it into https://try.terser.org/.
-const INIT_SCRIPT = `class e extends HTMLElement{connectedCallback(){var e=this;if(!e.isConnected)return;let t=this.getAttribute("data-target");if(t){for(var r,a,i=document.createNodeIterator(document,128);i.nextNode();){let e=i.referenceNode;if(e.data=="$s:"+t?r=e:e.data=="/$s:"+t&&(a=e),r&&a)break}r&&a&&r.parentNode!==document&&requestAnimationFrame((()=>{for(var t=a.previousSibling;t!=r&&t&&t!=r;)a.parentNode.removeChild(t),t=a.previousSibling;for(i=r;e.firstChild;)r=e.firstChild,e.removeChild(r),i.after(r),i=r;e.parentNode.removeChild(e)}))}}}customElements.define("preact-island",e);`;
+const INIT_SCRIPT = `(e=>{let t=()=>{let t,n="l"!=e.readyState[0],r="querySelectorAll";for(t of e[r]("template[for]"))if(n||t.nextElementSibling&&t.content.childNodes.length){let o,n,r,a,d=e.createNodeIterator(e,128),l="$s:"+t.getAttribute("for");for(;(r=d.nextNode())&&(!o||!n);)r.data==l?o=r:r.data=="/"+l&&(n=r);if(o&&n&&o.parentNode!==e){for(;(a=o.nextSibling)&&a!=n;)a.remove();o.after(t.content),t.remove()}}for(t of e[r]("svg *,math *"))t.tagName<"a"&&(t=t.closest("svg,math"))&&(t.innerHTML+="");n&&o.disconnect()},o=new MutationObserver(t);o.observe(e,{childList:1,subtree:1}),e.addEventListener("DOMContentLoaded",t)})(document);`;
 
-export function createInitScript() {
-	return `<script>(function(){${INIT_SCRIPT}}())</script>`;
+/**
+ * @param {string} nonce
+ * @returns {string}
+ */
+export function createInitScript(nonce) {
+	return `<script${nonce ? ` nonce="${encodeEntities(nonce)}"` : ''}>${INIT_SCRIPT}</script>`;
 }
 
 /**
@@ -58,5 +59,5 @@ export function createInitScript() {
  * @returns {string}
  */
 export function createSubtree(id, content) {
-	return `<preact-island hidden data-target="${id}">${content}</preact-island>`;
+	return `<template for="${id}">${content}</template>`;
 }
