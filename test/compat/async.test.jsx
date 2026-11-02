@@ -1,11 +1,114 @@
-import { renderToStringAsync } from '../../src/index.js';
-import { h, Fragment } from 'preact';
+import { renderToString, renderToStringAsync } from '../../src/index.js';
+import { h, Fragment, options } from 'preact';
 import { Suspense, useId, lazy, createContext } from 'preact/compat';
 import { expect, describe, it } from 'vitest';
 import { createSuspender } from '../utils.jsx';
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
 describe('Async renderToString', () => {
+	it('should isolate options hooks across suspended renders', async () => {
+		const original = {
+			beforeDiff: options.__b,
+			renderHook: options.__r,
+			afterDiff: options.diffed,
+			unmountHook: options.unmount,
+			commitHook: options.__c,
+			skipEffects: options.__s
+		};
+		const calls = [];
+		const record = (label, hook, vnode) => {
+			calls.push([label, hook, vnode.type]);
+		};
+		const install = (label) => {
+			options.__b = (vnode) => {
+				record(label, 'beforeDiff', vnode);
+				if (original.beforeDiff) original.beforeDiff(vnode);
+			};
+			options.__r = (vnode) => {
+				record(label, 'render', vnode);
+				if (original.renderHook) original.renderHook(vnode);
+			};
+			options.diffed = (vnode) => {
+				record(label, 'afterDiff', vnode);
+				if (original.afterDiff) original.afterDiff(vnode);
+			};
+			options.unmount = (vnode) => {
+				record(label, 'unmount', vnode);
+				if (original.unmountHook) original.unmountHook(vnode);
+			};
+			options.__c = (vnode, commitQueue) => {
+				record(label, 'commit', vnode);
+				if (original.commitHook) original.commitHook(vnode, commitQueue);
+			};
+		};
+
+		const { Suspender, suspended } = createSuspender();
+		let skipEffectsDuringResume;
+		function Child() {
+			skipEffectsDuringResume = options.__s;
+			return <span>first</span>;
+		}
+		function Parent() {
+			return (
+				<Suspense fallback={null}>
+					<Suspender>
+						<Child />
+					</Suspender>
+				</Suspense>
+			);
+		}
+
+		try {
+			options.__s = false;
+			install('first');
+			const pending = renderToStringAsync(<Parent />);
+
+			// Suspended renders must not leak the skip-effects flag globally.
+			expect(options.__s).to.equal(false);
+
+			install('second');
+			renderToString(<aside>second</aside>);
+			expect(options.__s).to.equal(false);
+
+			suspended.resolve();
+			expect(await pending).to.equal('<!--$s--><span>first</span><!--/$s-->');
+
+			expect(
+				calls.filter(
+					([label, hook, type]) =>
+						label === 'first' && hook === 'render' && type === Suspender
+				)
+			).to.have.length(2);
+			expect(
+				calls.filter(
+					([label, hook, type]) =>
+						label === 'second' && hook === 'render' && type === Suspender
+				)
+			).to.have.length(0);
+			expect(
+				calls.some(
+					([label, hook, type]) =>
+						label === 'first' && hook === 'commit' && type === Parent
+				)
+			).to.equal(true);
+			expect(
+				calls.some(
+					([label, hook, type]) =>
+						label === 'second' && hook === 'commit' && type === Parent
+				)
+			).to.equal(false);
+			expect(options.__s).to.equal(false);
+			expect(skipEffectsDuringResume).to.equal(true);
+		} finally {
+			options.__b = original.beforeDiff;
+			options.__r = original.renderHook;
+			options.diffed = original.afterDiff;
+			options.unmount = original.unmountHook;
+			options.__c = original.commitHook;
+			options.__s = original.skipEffects;
+		}
+	});
+
 	it('should render JSX after a suspense boundary', async () => {
 		const { Suspender, suspended } = createSuspender();
 
@@ -434,6 +537,60 @@ describe('Async renderToString', () => {
 		expect(rendered).to.contain('<em>d-content</em>');
 		expect(rendered).to.contain('<span>c-after</span>');
 		expect(rendered).to.contain('<p>b-footer</p>');
+	});
+
+	describe('precompiled templates', () => {
+		it('should resolve suspended children inside a template', async () => {
+			const { Suspender, suspended } = createSuspender();
+			const Outer = ({ children }) => (
+				<Fragment tpl={['<div class="wrap">', '</div>']} exprs={[children]} />
+			);
+
+			const pending = renderToStringAsync(
+				<Outer>
+					<i>a</i>
+					<Suspense fallback="loading">
+						<Suspender>
+							<b>lazy</b>
+						</Suspender>
+					</Suspense>
+				</Outer>
+			);
+			suspended.resolve();
+
+			expect(await pending).to.equal(
+				'<div class="wrap"><i>a</i><!--$s--><b>lazy</b><!--/$s--></div>'
+			);
+		});
+
+		it('should keep template parts in order around multiple suspended expressions', async () => {
+			const first = createSuspender();
+			const second = createSuspender();
+
+			const pending = renderToStringAsync(
+				<Fragment
+					tpl={['<ul><li>', '</li><li>', '</li></ul>']}
+					exprs={[
+						<Suspense fallback="x">
+							<first.Suspender>
+								<b>one</b>
+							</first.Suspender>
+						</Suspense>,
+						<Suspense fallback="y">
+							<second.Suspender>
+								<b>two</b>
+							</second.Suspender>
+						</Suspense>
+					]}
+				/>
+			);
+			second.suspended.resolve();
+			first.suspended.resolve();
+
+			expect(await pending).to.equal(
+				'<ul><li><!--$s--><b>one</b><!--/$s--></li><li><!--$s--><b>two</b><!--/$s--></li></ul>'
+			);
+		});
 	});
 
 	describe('dangerouslySetInnerHTML', () => {

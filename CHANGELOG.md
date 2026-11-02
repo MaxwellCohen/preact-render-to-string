@@ -1,5 +1,41 @@
 # preact-render-to-string
 
+## 6.8.2
+
+### Patch Changes
+
+- [#485](https://github.com/preactjs/preact-render-to-string/pull/485) [`2dd9a3a`](https://github.com/preactjs/preact-render-to-string/commit/2dd9a3ada5793e318f85d2a099cb318d06ebde7d) Thanks [@JoviDeCroock](https://github.com/JoviDeCroock)! - Fix `renderToStringAsync` stringifying suspended children inside precompiled JSX templates
+
+- [#489](https://github.com/preactjs/preact-render-to-string/pull/489) [`7be3108`](https://github.com/preactjs/preact-render-to-string/commit/7be31085361b28f08d008590b7722450fd8698ae) Thanks [@JoviDeCroock](https://github.com/JoviDeCroock)! - Use Preact's VNode recognition across renderers.
+
+## 6.8.1
+
+### Patch Changes
+
+- [#482](https://github.com/preactjs/preact-render-to-string/pull/482) [`a4b9e49`](https://github.com/preactjs/preact-render-to-string/commit/a4b9e49aa2cb1bbd80af9f5a1466b67fd8e83fb3) Thanks [@JoviDeCroock](https://github.com/JoviDeCroock)! - Encode attribute values after string coercion so arrays and objects are serialized consistently with string attributes.
+
+## 6.8.0
+
+### Minor Changes
+
+- [#472](https://github.com/preactjs/preact-render-to-string/pull/472) [`2dff53d`](https://github.com/preactjs/preact-render-to-string/commit/2dff53d461c735756d58063d09548f5f2486f65b) Thanks [@jacob-ebey](https://github.com/jacob-ebey)! - Replaces the second `context` argument in our streaming functions with an `options` object, the `context` moves to the third position.
+  
+  Streaming is considered alpha so we're making this breaking change deliberately as part of a minor.
+
+### Patch Changes
+
+- [#464](https://github.com/preactjs/preact-render-to-string/pull/464) [`455daf5`](https://github.com/preactjs/preact-render-to-string/commit/455daf5093ebfe9ee577ec738ee5c3a5edc05b29) Thanks [@JoviDeCroock](https://github.com/JoviDeCroock)! - Call `options._root` before the render-to-string invocation
+
+- [#475](https://github.com/preactjs/preact-render-to-string/pull/475) [`4e92059`](https://github.com/preactjs/preact-render-to-string/commit/4e92059ec2fd5623af67c32ee06e08ff979e9066) Thanks [@JoviDeCroock](https://github.com/JoviDeCroock)! - Use Node's `Writable` type for `renderToPipeableStream` destinations.
+
+- [#444](https://github.com/preactjs/preact-render-to-string/pull/444) [`e5ff19f`](https://github.com/preactjs/preact-render-to-string/commit/e5ff19f53d5941c69e7c6c7d507be77131181928) Thanks [@dsherret](https://github.com/dsherret)! - fix: use cjs types instead of esm for jsx export to fix default export from esm
+
+- [#477](https://github.com/preactjs/preact-render-to-string/pull/477) [`4b80672`](https://github.com/preactjs/preact-render-to-string/commit/4b806722add1d4fcd4df72a7f1e20e54ef50a593) Thanks [@JoviDeCroock](https://github.com/JoviDeCroock)! - Preserve client-rendered content when delayed streaming chunks arrive after hydration.
+
+- [#471](https://github.com/preactjs/preact-render-to-string/pull/471) [`0ce2b84`](https://github.com/preactjs/preact-render-to-string/commit/0ce2b84fa709d0ea958b19b807bbb40bff8b1045) Thanks [@JoviDeCroock](https://github.com/JoviDeCroock)! - Keep Preact option hooks isolated for the lifetime of asynchronous renders.
+
+- [#476](https://github.com/preactjs/preact-render-to-string/pull/476) [`5b1d509`](https://github.com/preactjs/preact-render-to-string/commit/5b1d50981b01dd4baeae131ee7da40f180ce5a9e) Thanks [@JoviDeCroock](https://github.com/JoviDeCroock)! - Replace streamed Suspense fallbacks when the resolved content is empty.
+
 ## 6.7.0
 
 ### Minor Changes

@@ -1,7 +1,8 @@
 import { VNode } from 'preact';
-import { WritableStream } from 'node:stream';
+import { Writable } from 'node:stream';
 
 interface RenderToPipeableStreamOptions {
+	nonce?: string;
 	onShellReady?: () => void;
 	onAllReady?: () => void;
 	onError?: (error: any) => void;
@@ -9,7 +10,7 @@ interface RenderToPipeableStreamOptions {
 
 interface PipeableStream {
 	abort: (reason?: unknown) => void;
-	pipe: (writable: WritableStream) => void;
+	pipe: (writable: Writable) => void;
 }
 
 export function renderToPipeableStream<P = {}>(
