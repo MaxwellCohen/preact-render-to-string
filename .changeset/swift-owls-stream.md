@@ -2,6 +2,6 @@
 "preact-render-to-string": minor
 ---
 
-Stream deferred content using DPU `<template for>` patches and a MutationObserver client script instead of `<preact-island>` custom elements.
+Add an opt-in `dpu: true` option to `renderToChunks`, `renderToReadableStream` and `renderToPipeableStream` that streams deferred content using declarative partial updates (`<template for>` patches, `<?start>`/`<?end>` fallback markers and a single MutationObserver init script) instead of `<preact-island>` custom elements.
 
-Fallbacks are wrapped with processing-instruction markers, and SVG/MathML subtrees are re-parsed so they display correctly after replacement. Streaming is still alpha, so this wire-format change is a minor.
+The existing `<preact-island>` wire format stays the default, so this is a minor. Making `dpu` the default would change the wire format and must be released as a major.

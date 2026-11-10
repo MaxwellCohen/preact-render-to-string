@@ -234,11 +234,17 @@ createServer((req, res) => {
 
 | Option | Description |
 |---|---|
+| `nonce` | CSP nonce for the streaming init script. |
+| `dpu` | Opt in to the `<template for>` wire format (see below). Default `false`. |
 | `onShellReady()` | Called synchronously once the initial shell has been rendered and streaming is about to start. Pipe here for fastest TTFB. |
 | `onAllReady()` | Called after all `<Suspense>` boundaries have resolved and the stream is complete. |
 | `onError(error)` | Called for render errors inside suspended subtrees. |
 
 Calling `abort()` stops the render and destroys the stream; any pending suspended subtrees are dropped.
+
+#### Opt-in: declarative partial updates (`dpu: true`)
+
+Both `renderToReadableStream(vnode, { dpu: true })` and `renderToPipeableStream(vnode, { dpu: true })` stream deferred content as `<template for="id">` patches instead of `<preact-island>` elements. Fallbacks are wrapped in `<?start name="id">`/`<?end>` markers, ids are prefixed with a random per-render token, and a single init script (a `MutationObserver` polyfill for browsers without native `<template for>`, currently only Chromium 150+) is sent once instead of a custom element definition. SVG/MathML content is re-parsed so it lands in the right namespace. The default (`dpu: false`) keeps the existing `<preact-island>` format; flipping that default would be a breaking change.
 
 ---
 
