@@ -106,6 +106,9 @@ const LEGACY_INIT_SCRIPT = `class e extends HTMLElement{connectedCallback(){var 
 // 			if (s.parentNode.closest("svg,math"))
 // 				for (n = s.nextSibling; n != e; n = next) (next = n.nextSibling), (n.outerHTML = n.outerHTML);
 // 		},
+// 		// <?start name=id>/<?end> are processing instructions natively and bogus comments otherwise
+// 		marker = (n, t, id) =>
+// 			n && (n.nodeType == 7 ? n.target == t : n.nodeType == 8 && n.data.startsWith("?" + t)) && (t != "start" || n.data.includes('"' + id + '"')),
 // 		mo = new MutationObserver((records) =>
 // 			records.forEach((r) => {
 // 				let e = r.nextSibling, s = e, l, id;
@@ -137,7 +140,8 @@ const LEGACY_INIT_SCRIPT = `class e extends HTMLElement{connectedCallback(){var 
 // 							// DOM that a client vnode already owns (hydration got here first)
 // 							// must survive, so leave the boundary alone and only drop the template.
 // 							for (collect(s), l = s; (l = l.nextSibling) && l != e && !owned.has(l); );
-// 							if (l == e) {
+// 							// A client that already resolved the boundary leaves no markers: skip.
+// 							if (l == e && marker(s.nextSibling, "start", id) && marker(e.previousSibling, "end")) {
 // 								while ((l = s.nextSibling) != e) l.remove();
 // 								s.after(node.content);
 // 								fixNamespace(s, e);
@@ -153,7 +157,7 @@ const LEGACY_INIT_SCRIPT = `class e extends HTMLElement{connectedCallback(){var 
 // })(document);
 
 // To modify the DPU_INIT_SCRIPT, uncomment the above code, modify it, and paste it into https://try.terser.org/.
-const DPU_INIT_SCRIPT = `(e=>{let r,u,f=e=>e&&(r.add(e.__e),null===e.__e?.parentNode&&u.add(e.__e),e.__k&&e.__k.forEach(f)),b=n=>{let a=n.parentNode;for(r=new Set,u=new Set;a&&!a.__k;)a=a.parentNode;f(a?.__k)},h=(n,t)=>{let f,L;if(n.parentNode.closest("svg,math"))for(f=n.nextSibling;f!=t;f=L)L=f.nextSibling,f.outerHTML=f.outerHTML},g=new MutationObserver(k=>k.forEach(o=>{let t=o.nextSibling,n=t,s,a,i;if("end"==o.removedNodes[0]?.nodeName&&"/"==t?.data?.[0]){for(i=t.data.slice(1);(n=n.previousSibling)&&n.data!=i;);if(n)if(b(n),u.size){for(;(a=n.nextSibling)!=t;)a.remove();t.before(...u)}else h(n,t)}o.addedNodes.forEach(d=>{let i,L;if((d=d.previousSibling)&&d.content){for(i=d.getAttribute("for"),L=e.createNodeIterator(e,128),n=t=0;(a=L.nextNode())&&!(n&&t);)a.data=="$s:"+i?n=a:a.data=="/$s:"+i&&(t=a);if(t){for(b(n),a=n;(a=a.nextSibling)&&a!=t&&!r.has(a););if(a==t){for(;(a=n.nextSibling)!=t;)a.remove();n.after(d.content),h(n,t)}d.remove()}}})}));g.observe(e,{childList:1,subtree:1}),e.addEventListener("DOMContentLoaded",()=>g.disconnect())})(document);`;
+const DPU_INIT_SCRIPT = `(e=>{let r,u,f=e=>e&&(r.add(e.__e),null===e.__e?.parentNode&&u.add(e.__e),e.__k&&e.__k.forEach(f)),b=n=>{let a=n.parentNode;for(r=new Set,u=new Set;a&&!a.__k;)a=a.parentNode;f(a?.__k)},h=(n,t)=>{let f,L;if(n.parentNode.closest("svg,math"))for(f=n.nextSibling;f!=t;f=L)L=f.nextSibling,f.outerHTML=f.outerHTML},m=(n,t,i)=>n&&(7==n.nodeType?n.target==t:8==n.nodeType&&n.data.startsWith("?"+t))&&("start"!=t||n.data.includes('"'+i+'"')),g=new MutationObserver(k=>k.forEach(o=>{let t=o.nextSibling,n=t,s,a,i;if("end"==o.removedNodes[0]?.nodeName&&"/"==t?.data?.[0]){for(i=t.data.slice(1);(n=n.previousSibling)&&n.data!=i;);if(n)if(b(n),u.size){for(;(a=n.nextSibling)!=t;)a.remove();t.before(...u)}else h(n,t)}o.addedNodes.forEach(d=>{let i,L;if((d=d.previousSibling)&&d.content){for(i=d.getAttribute("for"),L=e.createNodeIterator(e,128),n=t=0;(a=L.nextNode())&&!(n&&t);)a.data=="$s:"+i?n=a:a.data=="/$s:"+i&&(t=a);if(t){for(b(n),a=n;(a=a.nextSibling)&&a!=t&&!r.has(a););if(a==t&&m(n.nextSibling,"start",i)&&m(t.previousSibling,"end")){for(;(a=n.nextSibling)!=t;)a.remove();n.after(d.content),h(n,t)}d.remove()}}})}));g.observe(e,{childList:1,subtree:1}),e.addEventListener("DOMContentLoaded",()=>g.disconnect())})(document);`;
 
 /**
  * @param {string} [nonce]

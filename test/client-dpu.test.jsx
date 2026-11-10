@@ -127,7 +127,7 @@ describe('createInitScript (dpu)', () => {
 describe('inline init script', () => {
 	it('should replace fallback content between $s markers with template content', async () => {
 		const { window, document } = createDom(
-			'<div><!--$s:1-->loading...<!--/$s:1--></div>'
+			'<div><!--$s:1--><?start name="1">loading...<?end><!--/$s:1--></div>'
 		);
 
 		runInitScript(window);
@@ -145,7 +145,7 @@ describe('inline init script', () => {
 
 	it('should leave markers in place after patching', async () => {
 		const { window, document } = createDom(
-			'<div><!--$s:9-->fallback<!--/$s:9--></div>'
+			'<div><!--$s:9--><?start name="9">fallback<?end><!--/$s:9--></div>'
 		);
 
 		runInitScript(window);
@@ -169,7 +169,7 @@ describe('inline init script', () => {
 
 	it('should patch multiple suspense boundaries independently', async () => {
 		const { window, document } = createDom(
-			'<div><!--$s:1-->a<!--/$s:1--><!--$s:2-->b<!--/$s:2--></div>'
+			'<div><!--$s:1--><?start name="1">a<?end><!--/$s:1--><!--$s:2--><?start name="2">b<?end><!--/$s:2--></div>'
 		);
 
 		runInitScript(window);
@@ -188,7 +188,7 @@ describe('inline init script', () => {
 
 	it('should continue processing later templates when an earlier one has no markers', async () => {
 		const { window, document } = createDom(
-			'<div><!--$s:1-->loading<!--/$s:1--></div>'
+			'<div><!--$s:1--><?start name="1">loading<?end><!--/$s:1--></div>'
 		);
 
 		runInitScript(window);
@@ -210,7 +210,7 @@ describe('inline init script', () => {
 
 	it('should ignore templates that do not match any suspense markers', async () => {
 		const { window, document } = createDom(
-			'<div><!--$s:1-->loading<!--/$s:1--></div>'
+			'<div><!--$s:1--><?start name="1">loading<?end><!--/$s:1--></div>'
 		);
 
 		runInitScript(window);
@@ -218,13 +218,13 @@ describe('inline init script', () => {
 		await flushMutations();
 
 		expect(bodyHtml(document)).toBe(
-			'<div><!--$s:1-->loading<!--/$s:1--></div><template for="999"><p>nope</p></template>'
+			'<div><!--$s:1--><!--?start name="1"-->loading<!--?end--><!--/$s:1--></div><template for="999"><p>nope</p></template>'
 		);
 	});
 
 	it('should still patch templates when htmlFor is present on HTMLTemplateElement', async () => {
 		const { window, document } = createDom(
-			'<div><!--$s:1-->loading<!--/$s:1--></div>'
+			'<div><!--$s:1--><?start name="1">loading<?end><!--/$s:1--></div>'
 		);
 
 		Object.defineProperty(window.HTMLTemplateElement.prototype, 'htmlFor', {
@@ -250,7 +250,7 @@ describe('inline init script', () => {
 
 	it('should not patch a template that is still streaming while the document is loading', async () => {
 		const { window, document } = createDom(
-			'<div><!--$s:1-->loading<!--/$s:1--></div>'
+			'<div><!--$s:1--><?start name="1">loading<?end><!--/$s:1--></div>'
 		);
 
 		await loaded(window);
@@ -263,7 +263,7 @@ describe('inline init script', () => {
 		await flushMutations();
 
 		expect(document.querySelector('div').innerHTML).toBe(
-			'<!--$s:1-->loading<!--/$s:1-->'
+			'<!--$s:1--><!--?start name="1"-->loading<!--?end--><!--/$s:1-->'
 		);
 		expect(document.querySelector('template[for="1"]')).not.toBeNull();
 
@@ -280,7 +280,7 @@ describe('inline init script', () => {
 
 	it('should patch a closed template while loading without waiting for a later template', async () => {
 		const { window, document } = createDom(
-			'<div><!--$s:1-->a<!--/$s:1--><!--$s:2-->b<!--/$s:2--></div>'
+			'<div><!--$s:1--><?start name="1">a<?end><!--/$s:1--><!--$s:2--><?start name="2">b<?end><!--/$s:2--></div>'
 		);
 
 		await loaded(window);
@@ -291,7 +291,7 @@ describe('inline init script', () => {
 		await flushMutations();
 
 		expect(document.querySelector('div').innerHTML).toBe(
-			'<!--$s:1--><p>one</p><!--/$s:1--><!--$s:2-->b<!--/$s:2-->'
+			'<!--$s:1--><p>one</p><!--/$s:1--><!--$s:2--><!--?start name="2"-->b<!--?end--><!--/$s:2-->'
 		);
 		expect(document.querySelector('template[for="1"]')).toBeNull();
 
@@ -306,7 +306,7 @@ describe('inline init script', () => {
 
 	it('should patch a closed template with empty content while loading', async () => {
 		const { window, document } = createDom(
-			'<div><!--$s:1-->loading<!--/$s:1--></div>'
+			'<div><!--$s:1--><?start name="1">loading<?end><!--/$s:1--></div>'
 		);
 
 		await loaded(window);
@@ -348,7 +348,7 @@ describe('inline init script', () => {
 
 	it('should disconnect the MutationObserver after a non-loading pass', async () => {
 		const { window, document } = createDom(
-			'<div><!--$s:1-->a<!--/$s:1--><!--$s:2-->b<!--/$s:2--></div>'
+			'<div><!--$s:1--><?start name="1">a<?end><!--/$s:1--><!--$s:2--><?start name="2">b<?end><!--/$s:2--></div>'
 		);
 
 		runInitScript(window);
@@ -356,7 +356,7 @@ describe('inline init script', () => {
 		await flushMutations();
 
 		expect(document.querySelector('div').innerHTML).toBe(
-			'<!--$s:1--><p>one</p><!--/$s:1--><!--$s:2-->b<!--/$s:2-->'
+			'<!--$s:1--><p>one</p><!--/$s:1--><!--$s:2--><!--?start name="2"-->b<!--?end--><!--/$s:2-->'
 		);
 		expect(document.querySelector('template[for="1"]')).toBeNull();
 
@@ -366,14 +366,14 @@ describe('inline init script', () => {
 		await flushMutations();
 
 		expect(document.querySelector('div').innerHTML).toBe(
-			'<!--$s:1--><p>one</p><!--/$s:1--><!--$s:2-->b<!--/$s:2-->'
+			'<!--$s:1--><p>one</p><!--/$s:1--><!--$s:2--><!--?start name="2"-->b<!--?end--><!--/$s:2-->'
 		);
 		expect(document.querySelector('template[for="2"]')).not.toBeNull();
 	});
 
 	it('should parse patched children in the svg/math namespace of their parent', async () => {
 		const { window, document } = createDom(
-			'<svg><!--$s:1--><!--/$s:1--></svg><math><!--$s:2--><!--/$s:2--></math>'
+			'<svg><!--$s:1--><?start name="1"><?end><!--/$s:1--></svg><math><!--$s:2--><?start name="2"><?end><!--/$s:2--></math>'
 		);
 
 		runInitScript(window);
@@ -424,7 +424,7 @@ describe('inline init script', () => {
 
 	it('should not reparse unrelated svg or math elements', async () => {
 		const { window, document } = createDom(
-			'<svg><circle></circle></svg><div><!--$s:1-->loading<!--/$s:1--></div>'
+			'<svg><circle></circle></svg><div><!--$s:1--><?start name="1">loading<?end><!--/$s:1--></div>'
 		);
 		const circle = document.querySelector('circle');
 
@@ -439,7 +439,7 @@ describe('inline init script', () => {
 let hydrationDom;
 const previousDocument = globalThis.document;
 async function setupHydration(
-	html = '<div id="root"><!--$s:1--><i>loading</i><!--/$s:1--></div>'
+	html = '<div id="root"><!--$s:1--><?start name="1"><i>loading</i><?end><!--/$s:1--></div>'
 ) {
 	hydrationDom = new JSDOM(html, {
 		runScripts: 'dangerously',
@@ -470,6 +470,49 @@ function renderClient(root, children) {
 	root.prepend(document.createComment('$s:1'));
 	root.append(document.createComment('/$s:1'));
 }
+
+describe('polyfill marker checks', () => {
+	it('should skip a template when the client resolved the boundary and removed the markers', async () => {
+		// Boundary 1 was resolved by the client (fallback markers dropped, client
+		// content in place) before its streamed template arrived.
+		const { window, document } = createDom(
+			'<div><!--$s:1--><p>client</p><!--/$s:1--></div>'
+		);
+		runInitScript(window);
+		appendTogether(document, createSubtree('1', '<p>server</p>'));
+		await flushMutations();
+
+		expect(bodyHtml(document)).toBe(
+			'<div><!--$s:1--><p>client</p><!--/$s:1--></div>'
+		);
+		expect(document.querySelector('template')).toBeNull();
+	});
+
+	it('should skip a template when only the end marker is missing', async () => {
+		const { window, document } = createDom(
+			'<div><!--$s:1--><?start name="1">loading<!--/$s:1--></div>'
+		);
+		runInitScript(window);
+		appendTogether(document, createSubtree('1', '<p>server</p>'));
+		await flushMutations();
+
+		expect(bodyHtml(document)).toContain('loading');
+		expect(bodyHtml(document)).not.toContain('server');
+		expect(document.querySelector('template')).toBeNull();
+	});
+
+	it('should skip a template when the start marker names another boundary', async () => {
+		const { window, document } = createDom(
+			'<div><!--$s:1--><?start name="2">loading<?end><!--/$s:1--></div>'
+		);
+		runInitScript(window);
+		appendTogether(document, createSubtree('1', '<p>server</p>'));
+		await flushMutations();
+
+		expect(bodyHtml(document)).not.toContain('server');
+		expect(document.querySelector('template')).toBeNull();
+	});
+});
 
 describe('stream template hydration races', () => {
 	afterEach(() => {
@@ -558,7 +601,8 @@ describe('stream template hydration races', () => {
 			root
 		);
 		const section = root.querySelector('section');
-		section.innerHTML = '<!--$s:1--><i>loading</i><!--/$s:1-->';
+		section.innerHTML =
+			'<!--$s:1--><?start name="1"><i>loading</i><?end><!--/$s:1-->';
 		appendStreamed(document);
 		await flush();
 		expect(section.textContent).toBe('server');
@@ -583,13 +627,32 @@ describe('stream template hydration races', () => {
 			.querySelector('button')
 			.insertAdjacentHTML(
 				'afterend',
-				'<!--$s:2--><i>nested fallback</i><!--/$s:2-->'
+				'<!--$s:2--><?start name="2"><i>nested fallback</i><?end><!--/$s:2-->'
 			);
 		appendStreamed(document);
 		await flush();
 		expect(root.innerHTML).toBe(
-			'<!--$s:1--><button>client</button><!--$s:2--><i>nested fallback</i><!--/$s:2--><!--/$s:1-->'
+			'<!--$s:1--><button>client</button><!--$s:2--><!--?start name="2"--><i>nested fallback</i><!--?end--><!--/$s:2--><!--/$s:1-->'
 		);
+		expect(document.querySelector('template')).toBeNull();
+	});
+
+	it('should not duplicate DOM when the client resolves the boundary before its template arrives', async () => {
+		const { document, root, flush } = await setupHydration();
+		let clicks = 0;
+		root.replaceChildren();
+		render(<button onClick={() => clicks++}>client</button>, root);
+		const button = root.firstChild;
+		// Client resolved boundary 1: anchors kept, <?start>/<?end> markers gone.
+		root.prepend(document.createComment('$s:1'));
+		root.append(document.createComment('/$s:1'));
+		appendStreamed(document);
+		await flush();
+		expect(root.querySelectorAll('button')).toHaveLength(1);
+		expect(root.querySelector('button')).toBe(button);
+		expect(root.textContent).toBe('client');
+		button.click();
+		expect(clicks).toBe(1);
 		expect(document.querySelector('template')).toBeNull();
 	});
 });
