@@ -3,6 +3,8 @@ import { Writable } from 'node:stream';
 
 interface RenderToPipeableStreamOptions {
 	nonce?: string;
+	/** Opt in to `<template for>` (declarative partial updates) streaming. */
+	dpu?: boolean;
 	onShellReady?: () => void;
 	onAllReady?: () => void;
 	onError?: (error: any) => void;

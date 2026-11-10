@@ -20,6 +20,7 @@ export function renderToReadableStream(vnode, options, context) {
 			renderToChunks(vnode, {
 				context,
 				nonce: options?.nonce,
+				dpu: options?.dpu,
 				onError: (error) => {
 					allReady.reject(error);
 					controller.abort(error);

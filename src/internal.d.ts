@@ -25,6 +25,7 @@ interface RendererState {
 	abortSignal?: AbortSignal | undefined;
 	onWrite: (str: string) => void;
 	onError?: RendererErrorHandler;
+	dpu?: boolean;
 }
 
 interface CapturedHooks {
@@ -44,4 +45,5 @@ interface RenderToChunksOptions {
 	onWrite: (str: string) => void;
 	abortSignal?: AbortSignal;
 	nonce?: string;
+	dpu?: boolean;
 }

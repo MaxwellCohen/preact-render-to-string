@@ -3,6 +3,8 @@ import { renderToChunks } from './lib/chunked.js';
 
 /**
  * @typedef {object} RenderToPipeableStreamOptions
+ * @property {string} [nonce]
+ * @property {boolean} [dpu]
  * @property {() => void} [onShellReady]
  * @property {() => void} [onAllReady]
  * @property {(error) => void} [onError]
@@ -30,6 +32,7 @@ export function renderToPipeableStream(vnode, options, context) {
 		context,
 		abortSignal: controller.signal,
 		nonce: options.nonce,
+		dpu: options.dpu,
 		onError: (error) => {
 			if (options.onError) {
 				options.onError(error);

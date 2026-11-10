@@ -6,6 +6,8 @@ interface RenderStream extends ReadableStream<Uint8Array> {
 
 interface RenderToReadableStreamOptions {
 	nonce?: string;
+	/** Opt in to `<template for>` (declarative partial updates) streaming. */
+	dpu?: boolean;
 }
 
 export function renderToReadableStream<P = {}>(

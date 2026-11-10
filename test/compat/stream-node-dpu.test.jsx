@@ -1,0 +1,145 @@
+import { PassThrough } from 'node:stream';
+import { h } from 'preact';
+import { expect, describe, it } from 'vitest';
+import { Suspense } from 'preact/compat';
+import {
+	createSubtree as createSubtreeBase,
+	createInitScript as createInitScriptBase
+} from '../../src/lib/client';
+
+const createSubtree = (id, content) => createSubtreeBase(id, content, true);
+const createInitScript = (nonce) => createInitScriptBase(nonce, true);
+import { renderToPipeableStream as renderToPipeableStreamBase } from '../../src/stream-node';
+import { Deferred } from '../../src/lib/util';
+import { createSuspender } from '../utils';
+
+function streamToString(stream) {
+	const decoder = new TextDecoder();
+	const def = new Deferred();
+	stream.on('data', (chunk) => {
+		chunks.push(decoder.decode(chunk));
+	});
+	stream.on('error', (err) => def.reject(err));
+	stream.on('end', () => def.resolve(chunks));
+	const chunks = [];
+	return def;
+}
+
+/**
+ * @param {ReadableStream} input
+ */
+function createSink() {
+	const stream = new PassThrough();
+	const def = streamToString(stream);
+
+	return {
+		promise: def.promise,
+		stream
+	};
+}
+
+const renderToPipeableStream = (vnode, options, context) =>
+	renderToPipeableStreamBase(vnode, { ...options, dpu: true }, context);
+
+describe('renderToPipeableStream (dpu)', () => {
+	it('should render non-suspended JSX in one go', async () => {
+		const sink = createSink();
+		const { pipe } = renderToPipeableStream(<div class="foo">bar</div>, {
+			onAllReady: () => {
+				pipe(sink.stream);
+			}
+		});
+		const result = await sink.promise;
+
+		expect(result).to.deep.equal(['<div class="foo">bar</div>']);
+	});
+
+	it('should render fallback + attach loaded subtree on suspend', async () => {
+		const { Suspender, suspended } = createSuspender();
+
+		const sink = createSink();
+		const { pipe } = renderToPipeableStream(
+			<div>
+				<Suspense fallback="loading...">
+					<Suspender />
+				</Suspense>
+			</div>,
+			{
+				onShellReady: () => {
+					pipe(sink.stream);
+				}
+			}
+		);
+		suspended.resolve();
+
+		const result = await sink.promise;
+
+		expect(result).to.deep.equal([
+			`<div><!--$s:5--><?start name="5">loading...<?end><!--/$s:5--></div>`,
+			createInitScript(),
+			createSubtree('5', '<p>it works</p>')
+		]);
+	});
+
+	it('should not error if the stream has already been closed', async () => {
+		let error;
+		const sink = createSink();
+		const { pipe, abort } = renderToPipeableStream(<div class="foo">bar</div>, {
+			onAllReady: () => {
+				pipe(sink.stream);
+			},
+			onError: (e) => (error = e)
+		});
+		await sink.promise;
+		abort();
+
+		expect(error).to.be.undefined;
+	});
+
+	it('should include the nonce attribute on the init script when a nonce is provided', async () => {
+		const { Suspender, suspended } = createSuspender();
+
+		const sink = createSink();
+		const { pipe } = renderToPipeableStream(
+			<div>
+				<Suspense fallback="loading...">
+					<Suspender />
+				</Suspense>
+			</div>,
+			{
+				nonce: 'r4nd0m-nonce',
+				onShellReady: () => {
+					pipe(sink.stream);
+				}
+			}
+		);
+		suspended.resolve();
+
+		const result = await sink.promise;
+
+		expect(result.join('')).to.contain('<script nonce="r4nd0m-nonce">');
+		expect(result.join('')).to.not.contain('<script>');
+	});
+
+	it('should replace the fallback when suspended content resolves empty', async () => {
+		const { Suspender, suspended } = createSuspender();
+		const sink = createSink();
+		const { pipe } = renderToPipeableStream(
+			<Suspense fallback="loading...">
+				<Suspender>{null}</Suspender>
+			</Suspense>,
+			{
+				onShellReady: () => pipe(sink.stream)
+			}
+		);
+		suspended.resolve();
+
+		const result = await sink.promise;
+		const id = result[0].match(/\$s:(\d+)/)[1];
+		expect(result).toEqual([
+			`<!--$s:${id}--><?start name="${id}">loading...<?end><!--/$s:${id}-->`,
+			createInitScript(),
+			createSubtree(id, '')
+		]);
+	});
+});
