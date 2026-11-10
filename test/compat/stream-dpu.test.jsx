@@ -14,6 +14,11 @@ import { Deferred } from '../../src/lib/util';
 import { createSuspender } from '../utils';
 
 /**
+ * DPU ids carry a random per-render prefix; strip it so expectations can use bare ids.
+ */
+const stripPrefix = (s) => s.replace(/p[0-9a-f]{20}-(?=\d)/g, '');
+
+/**
  * @param {ReadableStream} input
  */
 function createSink(input) {
@@ -27,7 +32,7 @@ function createSink(input) {
 		{
 			// Implement the sink
 			write(chunk) {
-				result.push(decoder.decode(chunk));
+				result.push(stripPrefix(decoder.decode(chunk)));
 			},
 			close() {
 				def.resolve(result);

@@ -26,6 +26,7 @@ interface RendererState {
 	onWrite: (str: string) => void;
 	onError?: RendererErrorHandler;
 	dpu?: boolean;
+	idPrefix: string;
 }
 
 interface CapturedHooks {

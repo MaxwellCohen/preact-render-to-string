@@ -17,7 +17,7 @@ function streamToString(stream) {
 	const decoder = new TextDecoder();
 	const def = new Deferred();
 	stream.on('data', (chunk) => {
-		chunks.push(decoder.decode(chunk));
+		chunks.push(stripPrefix(decoder.decode(chunk)));
 	});
 	stream.on('error', (err) => def.reject(err));
 	stream.on('end', () => def.resolve(chunks));
@@ -28,6 +28,11 @@ function streamToString(stream) {
 /**
  * @param {ReadableStream} input
  */
+/**
+ * DPU ids carry a random per-render prefix; strip it so expectations can use bare ids.
+ */
+const stripPrefix = (s) => s.replace(/p[0-9a-f]{20}-(?=\d)/g, '');
+
 function createSink() {
 	const stream = new PassThrough();
 	const def = streamToString(stream);
