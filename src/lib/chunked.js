@@ -21,7 +21,6 @@ export async function renderToChunks(
 		onWrite,
 		onError: handleError,
 		dpu: !!dpu,
-		idPrefix: dpu ? createIdPrefix() : '',
 		suspended: []
 	};
 
@@ -52,20 +51,6 @@ export async function renderToChunks(
 	} else {
 		onWrite(shell);
 	}
-}
-
-/**
- * Random, attribute-safe token (80 bits) prepended to DPU boundary ids.
- * @returns {string}
- */
-function createIdPrefix() {
-	const bytes = new Uint8Array(10);
-	const c = globalThis.crypto;
-	if (c && c.getRandomValues) c.getRandomValues(bytes);
-	else for (let i = 0; i < 10; i++) bytes[i] = Math.random() * 256;
-	let out = 'p';
-	for (let i = 0; i < 10; i++) out += bytes[i].toString(16).padStart(2, '0');
-	return out + '-';
 }
 
 /**
@@ -103,9 +88,7 @@ function handleError(error, vnode, renderChild) {
 
 	if (!vnode) return;
 
-	// DPU ids carry a random per-render prefix so that attacker-supplied HTML
-	// containing <template for="..."> cannot target a boundary by guessing it.
-	const id = this.idPrefix + vnode.__v;
+	const id = vnode.__v;
 	const found = this.suspended.find((x) => x.id === id);
 	const race = new Deferred();
 

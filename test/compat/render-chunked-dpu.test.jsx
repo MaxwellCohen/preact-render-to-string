@@ -13,17 +13,8 @@ const createInitScript = (nonce) => createInitScriptBase(nonce, true);
 import { createSuspender } from '../utils';
 import { VNODE, PARENT } from '../../src/lib/constants';
 
-/**
- * DPU ids carry a random per-render prefix; strip it so expectations can use bare ids.
- */
-const stripPrefix = (s) => s.replace(/p[0-9a-f]{20}-(?=\d)/g, '');
-
 const renderToChunks = (vnode, options) =>
-	renderToChunksBase(vnode, {
-		...options,
-		onWrite: (s) => options.onWrite(stripPrefix(s)),
-		dpu: true
-	});
+	renderToChunksBase(vnode, { ...options, dpu: true });
 
 describe('renderToChunks (dpu)', () => {
 	it('should render non-suspended JSX in one go', async () => {
@@ -423,59 +414,5 @@ describe('createInitScript', () => {
 		const script = createInitScript('a"b&c<d');
 		expect(script.startsWith('<script nonce="a&quot;b&amp;c&lt;d">')).to.be
 			.true;
-	});
-
-	describe('unguessable ids', () => {
-		const ID = /\$s:(p[0-9a-f]{20}-\d+)-->/;
-
-		async function render(onWrite) {
-			const { Suspender, suspended } = createSuspender();
-			const promise = renderToChunksBase(
-				<div>
-					<Suspense fallback="loading...">
-						<Suspender />
-					</Suspense>
-				</div>,
-				{ onWrite, dpu: true }
-			);
-			suspended.resolve();
-			await promise;
-		}
-
-		it('should use a random per-render prefix in markers, <?start> and <template for>', async () => {
-			const result = [];
-			await render((s) => result.push(s));
-			const id = result[0].match(ID)[1];
-			expect(result[0]).toContain(`<?start name="${id}">`);
-			expect(result[0]).toContain(`<!--/$s:${id}-->`);
-			expect(result[2]).toBe(
-				`<template for="${id}"><p>it works</p></template>\n`
-			);
-		});
-
-		it('should use a different prefix for every render', async () => {
-			const a = [];
-			const b = [];
-			await render((s) => a.push(s));
-			await render((s) => b.push(s));
-			const prefix = (r) => r[0].match(ID)[1].split('-')[0];
-			expect(prefix(a)).not.toBe(prefix(b));
-		});
-
-		it('should not prefix ids in the default format', async () => {
-			const { Suspender, suspended } = createSuspender();
-			const result = [];
-			const promise = renderToChunksBase(
-				<Suspense fallback="loading...">
-					<Suspender />
-				</Suspense>,
-				{ onWrite: (s) => result.push(s) }
-			);
-			suspended.resolve();
-			await promise;
-			expect(result[0]).toMatch(
-				/^<!--\$s:\d+-->loading\.\.\.<!--\/\$s:\d+-->$/
-			);
-		});
 	});
 });
