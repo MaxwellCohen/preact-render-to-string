@@ -152,12 +152,13 @@ const LEGACY_INIT_SCRIPT = `class e extends HTMLElement{connectedCallback(){var 
 // 				});
 // 			}),
 // 		);
-// 	mo.observe(d, { childList: 1, subtree: 1 });
+// 	// the init script is emitted inside the document, so <body> exists; fall back otherwise
+// 	mo.observe(d.body || d, { childList: 1, subtree: 1 });
 // 	d.addEventListener("DOMContentLoaded", () => mo.disconnect());
 // })(document);
 
 // To modify the DPU_INIT_SCRIPT, uncomment the above code, modify it, and paste it into https://try.terser.org/.
-const DPU_INIT_SCRIPT = `(e=>{let r,u,f=e=>e&&(r.add(e.__e),null===e.__e?.parentNode&&u.add(e.__e),e.__k&&e.__k.forEach(f)),b=n=>{let a=n.parentNode;for(r=new Set,u=new Set;a&&!a.__k;)a=a.parentNode;f(a?.__k)},h=(n,t)=>{let f,L;if(n.parentNode.closest("svg,math"))for(f=n.nextSibling;f!=t;f=L)L=f.nextSibling,f.outerHTML=f.outerHTML},m=(n,t,i)=>n&&(7==n.nodeType?n.target==t:8==n.nodeType&&n.data.startsWith("?"+t))&&("start"!=t||n.data.includes('"'+i+'"')),g=new MutationObserver(k=>k.forEach(o=>{let t=o.nextSibling,n=t,s,a,i;if("end"==o.removedNodes[0]?.nodeName&&"/"==t?.data?.[0]){for(i=t.data.slice(1);(n=n.previousSibling)&&n.data!=i;);if(n)if(b(n),u.size){for(;(a=n.nextSibling)!=t;)a.remove();t.before(...u)}else h(n,t)}o.addedNodes.forEach(d=>{let i,L;if((d=d.previousSibling)&&d.content){for(i=d.getAttribute("for"),L=e.createNodeIterator(e,128),n=t=0;(a=L.nextNode())&&!(n&&t);)a.data=="$s:"+i?n=a:a.data=="/$s:"+i&&(t=a);if(t){for(b(n),a=n;(a=a.nextSibling)&&a!=t&&!r.has(a););if(a==t&&m(n.nextSibling,"start",i)&&m(t.previousSibling,"end")){for(;(a=n.nextSibling)!=t;)a.remove();n.after(d.content),h(n,t)}d.remove()}}})}));g.observe(e,{childList:1,subtree:1}),e.addEventListener("DOMContentLoaded",()=>g.disconnect())})(document);`;
+const DPU_INIT_SCRIPT = `(e=>{let r,u,f=e=>e&&(r.add(e.__e),null===e.__e?.parentNode&&u.add(e.__e),e.__k&&e.__k.forEach(f)),b=n=>{let a=n.parentNode;for(r=new Set,u=new Set;a&&!a.__k;)a=a.parentNode;f(a?.__k)},h=(n,t)=>{let f,L;if(n.parentNode.closest("svg,math"))for(f=n.nextSibling;f!=t;f=L)L=f.nextSibling,f.outerHTML=f.outerHTML},m=(n,t,i)=>n&&(7==n.nodeType?n.target==t:8==n.nodeType&&n.data.startsWith("?"+t))&&("start"!=t||n.data.includes('"'+i+'"')),g=new MutationObserver(k=>k.forEach(o=>{let t=o.nextSibling,n=t,s,a,i;if("end"==o.removedNodes[0]?.nodeName&&"/"==t?.data?.[0]){for(i=t.data.slice(1);(n=n.previousSibling)&&n.data!=i;);if(n)if(b(n),u.size){for(;(a=n.nextSibling)!=t;)a.remove();t.before(...u)}else h(n,t)}o.addedNodes.forEach(d=>{let i,L;if((d=d.previousSibling)&&d.content){for(i=d.getAttribute("for"),L=e.createNodeIterator(e,128),n=t=0;(a=L.nextNode())&&!(n&&t);)a.data=="$s:"+i?n=a:a.data=="/$s:"+i&&(t=a);if(t){for(b(n),a=n;(a=a.nextSibling)&&a!=t&&!r.has(a););if(a==t&&m(n.nextSibling,"start",i)&&m(t.previousSibling,"end")){for(;(a=n.nextSibling)!=t;)a.remove();n.after(d.content),h(n,t)}d.remove()}}})}));g.observe(e.body||e,{childList:1,subtree:1}),e.addEventListener("DOMContentLoaded",()=>g.disconnect())})(document);`;
 
 /**
  * @param {string} [nonce]

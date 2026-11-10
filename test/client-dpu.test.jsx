@@ -471,6 +471,27 @@ function renderClient(root, children) {
 	root.append(document.createComment('/$s:1'));
 }
 
+describe('observer scope', () => {
+	it('should observe document.body rather than the whole document', async () => {
+		const { window, document } = createDom(
+			'<div><!--$s:1--><?start name="1">loading<?end><!--/$s:1--></div>'
+		);
+		runInitScript(window);
+		// Mutations outside <body> (e.g. in <head>) are not observed.
+		document.head.insertAdjacentHTML(
+			'beforeend',
+			createSubtree('1', '<p>head</p>')
+		);
+		await flushMutations();
+		expect(bodyHtml(document)).toContain('loading');
+		expect(document.head.querySelector('template')).not.toBeNull();
+
+		appendTogether(document, createSubtree('1', '<p>body</p>'));
+		await flushMutations();
+		expect(bodyHtml(document)).toContain('<p>body</p>');
+	});
+});
+
 describe('polyfill marker checks', () => {
 	it('should skip a template when the client resolved the boundary and removed the markers', async () => {
 		// Boundary 1 was resolved by the client (fallback markers dropped, client
